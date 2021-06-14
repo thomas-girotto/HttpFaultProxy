@@ -8,8 +8,8 @@ namespace HttpFaultProxy
     {
         public static void Main(string[] args)
         {
-            Environment.SetEnvironmentVariable("HTTP_PROXY", "http://localhost:5001", EnvironmentVariableTarget.User);
-            Environment.SetEnvironmentVariable("HTTPS_PROXY", "http://localhost:5001", EnvironmentVariableTarget.User);
+            Environment.SetEnvironmentVariable("HTTP_PROXY", "http://localhost:5000", EnvironmentVariableTarget.User);
+            Environment.SetEnvironmentVariable("HTTPS_PROXY", "http://localhost:5000", EnvironmentVariableTarget.User);
 
             try
             {

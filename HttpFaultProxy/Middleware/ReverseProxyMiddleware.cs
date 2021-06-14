@@ -1,30 +1,31 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using HttpFaultProxy.Model.Proxies;
+using Microsoft.AspNetCore.Http;
 using System;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace HttpFaultProxy
+namespace HttpFaultProxy.Middleware
 {
     public class ReverseProxyMiddleware
     {
-        private readonly HttpClient _httpClient;
+        private readonly IProxyProvider proxyProvider;
 
-        public ReverseProxyMiddleware(RequestDelegate _, HttpClient httpClient)
+        public ReverseProxyMiddleware(RequestDelegate _, IProxyProvider proxyProvider)
         {
-            _httpClient = httpClient;
+            this.proxyProvider = proxyProvider;
         }
 
         public async Task Invoke(HttpContext context)
         {
             var targetRequestMessage = CreateTargetMessage(context);
-
-            using (var responseMessage = await _httpClient.SendAsync(targetRequestMessage, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted))
-            {
-                context.Response.StatusCode = (int)responseMessage.StatusCode;
-                CopyFromTargetResponseHeaders(context, responseMessage);
-                await responseMessage.Content.CopyToAsync(context.Response.Body);
-            }
+            var proxy = proxyProvider.Get(targetRequestMessage.RequestUri!.ToString());
+            using var responseMessage = await proxy.SendAsync(targetRequestMessage, context.RequestAborted);
+            context.Response.StatusCode = (int)responseMessage.StatusCode;
+            CopyFromTargetResponseHeaders(context, responseMessage);
+            await responseMessage.Content.CopyToAsync(context.Response.Body, context.RequestAborted);
+            
             return;
         }
 
@@ -70,6 +71,7 @@ namespace HttpFaultProxy
             {
                 context.Response.Headers[header.Key] = header.Value.ToArray();
             }
+            context.Response.Headers.Remove("transfer-encoding");
         }
     }
 }
